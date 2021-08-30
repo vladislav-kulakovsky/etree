@@ -1117,6 +1117,97 @@ func (e *Element) RemoveAttr(key string) *Attr {
 	return nil
 }
 
+func keepElementsOnly(root *Element) {
+	if len(root.Child) < 1 {
+		return
+	}
+	indexList := make([]int, 0)
+	for idx, child := range root.Child {
+		if _, ok := child.(*Element); !ok {
+			indexList = append(indexList, idx)
+		}
+	}
+	sort.Slice(indexList, func(i, j int) bool {
+		return indexList[i] > indexList[j]
+	})
+	for _, v := range indexList {
+		root.RemoveChildAt(v)
+	}
+
+	for _, v := range root.ChildElements() {
+		keepElementsOnly(v)
+	}
+}
+
+type byChildren []Token
+
+func (e *Element) SortTree() {
+	keepElementsOnly(e.parent)
+	e.SortAttrs()
+
+	if len(e.Child) == 0 {
+		return
+	}
+
+	sort.Sort(byChildren(e.Child))
+	for _, v := range e.ChildElements() {
+		v.SortTree()
+	}
+}
+
+func (c byChildren) Len() int {
+	return len(c)
+}
+
+func (c byChildren) Swap(i, j int) {
+	c[i].(*Element).index, c[j].(*Element).index = c[j].(*Element).index, c[i].(*Element).index
+	c[i], c[j] = c[j], c[i]
+}
+
+func (c byChildren) Less(i, j int) bool {
+	lhs := c[i].(*Element)
+	rhs := c[j].(*Element)
+	lhs.SortAttrs()
+	rhs.SortAttrs()
+
+	if lhs.Space != rhs.Space {
+		return strings.Compare(lhs.Space, rhs.Space) < 0
+	}
+	if lhs.Tag != rhs.Tag {
+		return strings.Compare(lhs.Tag, rhs.Tag) < 0
+	}
+	if len(lhs.Attr) != len(rhs.Attr) {
+		return len(lhs.Attr) < len(rhs.Attr)
+	}
+
+	for k := 0; k < len(lhs.Attr); k++ {
+		lAttr := lhs.Attr[k]
+		rAttr := rhs.Attr[k]
+
+		if lAttr.Space != rAttr.Space {
+			return strings.Compare(lAttr.Space, rAttr.Space) < 0
+		}
+
+		if lAttr.Key != rAttr.Key {
+			return strings.Compare(lAttr.Key, rAttr.Space) < 0
+		}
+
+		if lAttr.Value != rAttr.Value {
+			return strings.Compare(lAttr.Value, rAttr.Value) < 0
+		}
+	}
+
+	if len(lhs.Child) != len(rhs.Child) {
+		return len(lhs.Child) < len(rhs.Child)
+	}
+
+	if len(lhs.Child) == 0 {
+		return false
+	}
+
+	return false
+}
+
 // SortAttrs sorts this element's attributes lexicographically by key.
 func (e *Element) SortAttrs() {
 	sort.Sort(byAttr(e.Attr))
@@ -1133,11 +1224,14 @@ func (a byAttr) Swap(i, j int) {
 }
 
 func (a byAttr) Less(i, j int) bool {
-	sp := strings.Compare(a[i].Space, a[j].Space)
-	if sp == 0 {
+	if a[i].Space != a[j].Space {
+		return strings.Compare(a[i].Space, a[j].Space) < 0
+	} else if a[i].Key != a[j].Key {
 		return strings.Compare(a[i].Key, a[j].Key) < 0
+	} else if a[i].Value != a[j].Key {
+		return strings.Compare(a[i].Value, a[j].Value) < 0
 	}
-	return sp < 0
+	return false
 }
 
 // FullKey returns this attribute's complete key, including namespace prefix
