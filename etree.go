@@ -1142,7 +1142,14 @@ func keepElementsOnly(root *Element) {
 type byChildren []Token
 
 func (e *Element) SortTree() {
-	keepElementsOnly(e.parent)
+	if e == nil {
+		return
+	}
+	if e.parent != nil {
+		keepElementsOnly(e.parent)
+	} else {
+		keepElementsOnly(e)
+	}
 	e.SortAttrs()
 
 	if len(e.Child) == 0 {
@@ -1189,7 +1196,7 @@ func (c byChildren) Less(i, j int) bool {
 		}
 
 		if lAttr.Key != rAttr.Key {
-			return strings.Compare(lAttr.Key, rAttr.Space) < 0
+			return strings.Compare(lAttr.Key, rAttr.Key) < 0
 		}
 
 		if lAttr.Value != rAttr.Value {
