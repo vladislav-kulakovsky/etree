@@ -1206,6 +1206,8 @@ func (c byChildren) Less(i, j int) bool {
 
 	if len(lhs.Child) != len(rhs.Child) {
 		return len(lhs.Child) < len(rhs.Child)
+	} else {
+		return cmpChild(lhs.ChildElements()[0], rhs.ChildElements()[0])
 	}
 
 	if len(lhs.Child) == 0 {
@@ -1213,6 +1215,41 @@ func (c byChildren) Less(i, j int) bool {
 	}
 
 	return false
+}
+
+func cmpChild(e1, e2 *Element) bool {
+	e1.SortAttrs()
+	e2.SortAttrs()
+	if len(e1.Attr) != len(e2.Attr) {
+		return len(e1.Attr) < len(e2.Attr)
+	}
+	for i := 0; i < len(e1.Attr); i++ {
+		attr1 := e1.Attr[i]
+		attr2 := e2.Attr[i]
+		if attr1.Key != attr2.Key {
+			return strings.Compare(attr1.Key, attr2.Key) < 0
+		}
+		if attr1.Value != attr2.Value {
+			return strings.Compare(attr1.Value, attr2.Value) < 0
+		}
+	}
+
+	// recurse for children;
+	// ToDo: traverse all children if needed
+	children1 := e1.Child
+	children2 := e2.Child
+
+	if len(children1) != len(children2) {
+		return len(children1) < len(children2)
+	}
+	if len(children1) == 0 {
+		return false
+	}
+
+	sort.Sort(byChildren(children1))
+	sort.Sort(byChildren(children2))
+
+	return cmpChild((children1[0]).(*Element), children2[0].(*Element))
 }
 
 // SortAttrs sorts this element's attributes lexicographically by key.
@@ -1610,3 +1647,4 @@ func (p *ProcInst) writeTo(w *bufio.Writer, s *WriteSettings) {
 	}
 	w.WriteString("?>")
 }
+
