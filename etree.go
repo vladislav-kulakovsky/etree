@@ -1206,7 +1206,7 @@ func (c byChildren) Less(i, j int) bool {
 
 	if len(lhs.Child) != len(rhs.Child) {
 		return len(lhs.Child) < len(rhs.Child)
-	} else {
+	} else if len(lhs.Child) != 0 {
 		return cmpChild(lhs.ChildElements()[0], rhs.ChildElements()[0])
 	}
 
